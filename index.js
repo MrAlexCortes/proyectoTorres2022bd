@@ -4,14 +4,16 @@ const cors = require("cors");
 mysql = require("mysql")
 const bodyParser = require("body-parser");
 const { json } = require("express/lib/response");
+const { exec } = require("child_process");
+
 
 app.use(cors());
 app.use(bodyParser.json());
 
 db = mysql.createConnection({
-    host: 'sql3.freemysqlhosting.net',
-    user: 'sql3479609',
-    password: 'aM8qp19ei9',
+    host: 'torresapidb.mysql.database.azure.com',
+    user: 'superadmin@torresapidb',
+    password: 'ESTApsRIFA!2020',
     database: 'sql3479609'
   });
 
@@ -19,7 +21,11 @@ app.listen(80, () => {
     console.log("running on 80")
 });
 
-app.get('/api/users/login', function(req, res) {
+app.get('/api/test', function(req, res) {
+        res.send({ status: 'ok'});
+});
+
+app.post('/api/users/login', function(req, res) {
     console.log(req.body)
     const email = req.body.email;
     const password =  req.body.password;
@@ -44,8 +50,8 @@ app.get('/api/users/login', function(req, res) {
 app.post('/api/users', function(req, res) {
     try{
         const body = req.body;
-        const sql = `insert into users(firstName, lastName, email, password, height, dob, gender, weight)
-        values('${body.firstName}', '${body.lastName}', '${body.email}', '${body.password}', ${body.height}, '${body.dob}', '${body.gender}', ${body.weight})`
+        const sql = `insert into users(firstName, lastName, email, password, height, dob, gender, weight, goalWeight)
+        values('${body.firstName}', '${body.lastName}', '${body.email}', '${body.password}', ${body.height}, '${body.dob}', '${body.gender}', ${body.weight}, ${body.goalWeight})`
         db.query(sql, (err, data, fields) => {
             if (err) throw err;
             res.send({ ok: 'Inserted'})
@@ -74,7 +80,22 @@ app.get('/api/users/:id', function(req, res) {
     }
 });
 
-// agregar campo de pesoDeseado
+app.patch('/api/users/:id/goalWeight', function(req, res) {
+    const goalWeight = req.body.goalWeight;
+    try{
+        const sql = `update users set goalWeight = ${goalWeight} where id = ${req.params.id}`;
+        db.query(sql, (err, data, fields) => {
+            if(data.affectedRows > 0) {
+                return res.send({ ok: 'Stats updated'});
+            } else {
+                res.send({ error: 'User not found'})
+            }
+        })
+    } catch (err) {
+        res.send({error: err}).status(500);
+    }
+});
+
 app.patch('/api/users/:id/today', function(req, res) {
     try{
         const weight = req.body.weight;
@@ -102,6 +123,15 @@ app.patch('/api/users/:id/today', function(req, res) {
     catch(err) {
         res.send(err).status(500);
     }
+});
+
+app.get('/api/restart', function(req, res) {
+        exec('forever restart 0', (err, stdout, stderror) => {
+                if(err) {
+                        return;
+                }
+                res.send({ ok: 'restarted' });
+        })
 });
 
 app.get('/api/users/:id/stats', function(req, res) {
